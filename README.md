@@ -1,40 +1,63 @@
-# LifeOS — Personal Task Manager
+# LifeOS Web App v2 — Cloud & Team Edition
 
-Responsive, Light Minimal task manager with local-first storage and optional Supabase cloud sync/shared workspaces.
+Responsive task manager with dashboard, list, Kanban, monthly calendar, 14 category labels from the supplied build, task recurrence, priority, activity history, recycle bin, JSON/CSV/Excel import/export, and Supabase cloud workspaces.
 
-## Included
-- 14 categories, including **Family Tasks** and **Future Tasks**
-- Create, edit, complete/reopen, and soft-delete tasks
-- Inbox, List, Kanban drag-and-drop, and monthly calendar views
-- Status, priority, due date, estimate, notes, tags, recurring tasks
-- Completion records and activity history
-- Recycle Bin with restore and permanent deletion
-- JSON backup/import, CSV import/export, Excel `.xlsx` import/export, and an Excel import template
-- Optional Supabase email magic-link login, persistent cloud database, shared workspaces and invite codes
-- Local browser copy remains available if cloud is not configured
+## Included account and collaboration features
 
-## Run / host
-Open `index.html` in a modern browser, or host the folder on GitHub Pages (Settings → Pages → deploy from `main` / root). External Supabase and SheetJS libraries are loaded from CDNs, so internet is needed for those features.
+- Email + password account registration and login (Supabase Auth)
+- Password reset email and password update
+- Persistent auth session across devices (sign in with the same account on each device)
+- Private personal workspace (one per account; cannot be joined by invite code)
+- Shared workspace creation and invite-code joining
+- Workspace switching for all workspaces the signed-in user belongs to
+- Owner / Admin / Member roles; Owner/Admin can promote members to Admin, demote Admin to Member, or remove non-owner members
+- Cloud save after task changes and Supabase Realtime updates for other members/devices
+- Logout
 
-## Enable permanent cross-device cloud storage (free-tier setup)
-GitHub Pages hosts the frontend; it does **not** store task data by itself. Configure Supabase as the database:
+## 1. Deploy the website
 
-1. Create a Supabase project at https://supabase.com/ and open **SQL Editor**.
-2. Run the full contents of `supabase-setup.sql`.
-3. In Supabase **Project Settings → API**, copy the Project URL and the **anon/publishable** key. Never paste a service-role/secret key into this web app.
-4. In Supabase **Authentication → URL Configuration**, add your deployed GitHub Pages URL to the allowed Redirect URLs. If testing locally, allow the local URL you use as well.
-5. Open LifeOS → **Cloud, Import & Settings**. Enter Project URL, anon/publishable key and your email, then click **Save config & sign in**.
-6. Open the emailed magic link. Return to LifeOS. Create a workspace; the invite code will appear in the status area and input. Share that code only with people you want to access the tasks.
-7. Each collaborator opens the same hosted app, enters the same Supabase URL/key, signs in with their own email, and joins using the invite code.
+Upload the contents of this folder to the root of your GitHub Pages repository. `index.html` must be at repository root. Commit changes and wait for GitHub Pages to publish.
 
-Members who join a workspace can read and edit its shared tasks, Recycle Bin and activity history. Use a separate workspace for private tasks. Invite codes act like access credentials—share carefully. If a code leaks, create a new workspace and move the work rather than treating the old code as private.
+## 2. Configure Supabase (required)
 
-## Data and sync notes
-- Local browser storage is retained as a convenience/offline copy, but clearing browser data can remove that local copy.
-- Cloud data persists in your Supabase database under your project and is shared across devices/workspace members. A free hosting/database provider can change its quotas, inactivity rules or pricing; check the provider's current terms and export regular backups.
-- Cloud saves are automatic after changes, with a manual **Sync now** option. Changes from other members update live while the connection is active. For simultaneous edits to the exact same task, the most recent workspace snapshot may win; export backups for important data.
-- JSON import restores a LifeOS backup. CSV/XLSX imports look for a `title` or `task` column and can map `category`, `status`, `priority`, `dueDate`, `estimate`, `recurrence`, `tags`, and `notes`. The importer offers merge or replace.
-- Excel export creates `Tasks`, `Recycle Bin`, and `History` sheets. The Excel library is loaded from a CDN.
+1. Open your Supabase project → SQL Editor.
+2. Run the complete `supabase-setup.sql` included in this ZIP. It is written to be re-runnable against the earlier LifeOS schema and adds the personal-workspace and role-management functions.
+3. In Supabase → Authentication → URL Configuration, set **Site URL** to your exact GitHub Pages URL, e.g. `https://YOUR-USERNAME.github.io/LifeOS-Web-App-v2/`.
+4. Add that exact URL to **Redirect URLs**. If your app uses a separate reset route, add that exact route too; this build uses the current page URL.
+5. In Authentication → Providers → Email, enable Email provider. For email confirmation, configure SMTP for reliable delivery; Supabase's default mail service is rate-limited. For testing, you may disable Confirm email, but enable it for real use.
+6. In LifeOS → Backup & Settings, enter Project URL and the **publishable** key (or legacy anon key). Never paste a `service_role` or secret key into the browser app.
 
-## Excel column template
-Required: `title` (or `task`). Optional: `category`, `status`, `priority`, `dueDate` (YYYY-MM-DD recommended), `estimate`, `recurrence`, `tags`, `notes`.
+## 3. First-time use
+
+1. On your main device, open the published site → Backup & Settings.
+2. Enter Supabase Project URL and publishable/anon key, your email, and a password of at least 8 characters.
+3. Choose **Create account**. If email confirmation is enabled, open the confirmation email on the same device/browser, then return and log in.
+4. Choose **Create private workspace** for your personal tasks. This workspace is private to your account and is not joinable by invite code.
+5. To collaborate, enter a name and choose **Create shared workspace**. Share its invite code only with intended collaborators.
+6. On each other device, open the same website, enter the same Supabase URL/key, and sign in using the same account to see your own workspace. For a teammate, they create their own account and join the shared workspace with the invite code.
+7. Use **Switch workspace** to move between your personal and shared workspaces.
+
+## 4. Roles
+
+- **Owner:** creator; cannot be demoted or removed by the UI.
+- **Admin:** can promote/demote non-owner members and remove non-owner members.
+- **Member:** can use and edit workspace tasks, but cannot manage membership/roles.
+
+Role and membership changes are performed by protected Supabase RPC functions. Do not expose a service-role key.
+
+## 5. Existing data and important notes
+
+- Existing cloud workspace data is not deleted by this update. After running the SQL, log in and use **Switch workspace** to access workspaces associated with your account.
+- Creating a new personal workspace starts it empty; it does not automatically copy tasks from an existing shared workspace. Export a JSON backup first if you want to copy/merge tasks manually.
+- Local browser data is not automatically uploaded until a workspace is selected and cloud sync is active. Export a backup before changing accounts/workspaces.
+- Automatic cloud writes are debounced briefly after changes; Realtime sends other members' updates to connected sessions. Use **Sync now** after login if needed.
+- Anyone with a shared-workspace invite code can join that shared workspace. Rotate/restrict invite handling outside the app if the code is exposed; never share personal workspace codes.
+- GitHub Pages is static hosting; Supabase provides auth and database services.
+
+## Troubleshooting
+
+- `Invalid login credentials`: create the account first or reset its password.
+- Confirmation/reset email not received: check spam, verify the email provider settings and SMTP/rate limits in Supabase.
+- `function ... does not exist`: rerun the complete `supabase-setup.sql` in SQL Editor.
+- `permission denied` / RLS errors: confirm the signed-in user is a workspace member and the full SQL setup completed successfully.
+- Tasks not visible on another device: use the same login for personal data; for team data, each teammate must sign in and join the same shared workspace.
